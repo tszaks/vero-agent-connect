@@ -1,8 +1,15 @@
 # Vero Agent Connect
 
-Vero Agent Connect lets a Vero user connect AI agents to their financial data using a token they create inside the Vero app.
+Public connector for giving AI agents controlled access to a user's Vero financial data.
 
-This repo is intentionally separate from Vero's private app and backend code. It contains only public client code, docs, examples, and a small MCP server that talks to the public Vero Agent Access API.
+Vero Agent Connect includes:
+
+- A TypeScript client for the Vero Agent Access API.
+- A local MCP server for Claude Desktop, Cursor, OpenClaw, Hermes Agents, and other MCP-compatible tools.
+- A small CLI for quick checks and automation scripts.
+- An OpenAPI spec for code generation and LLM tool use.
+
+This repository is intentionally separate from Vero's private app and backend code. It contains public client code, examples, and documentation only.
 
 ## What agents can do
 
@@ -19,15 +26,17 @@ Agents cannot:
 - Make payments.
 - Open or close bank accounts.
 - Access bank credentials.
-- See a token after the user leaves the Vero token creation screen.
+- See Plaid credentials.
+- See Vero internal service-role keys.
+- Recover a token after the user leaves the token creation screen.
 
 ## Create a token
 
-In the Vero app:
+In the Vero iOS app:
 
 1. Open `Settings`.
-2. Tap `Developers`.
-3. Tap `API Keys`.
+2. Open `Developers`.
+3. Open `API Keys`.
 4. Tap `Create Agent Token`.
 5. Name the token, for example `Claude Desktop`, `OpenClaw`, or `Hermes`.
 6. Copy the token once and store it in the agent's environment.
@@ -37,6 +46,8 @@ You can revoke a token from the same screen at any time.
 ## Quick start
 
 ```bash
+git clone https://github.com/tszaks/vero-agent-connect.git
+cd vero-agent-connect
 npm install
 cp .env.example .env
 npm run build
@@ -51,12 +62,12 @@ VERO_API_TOKEN=vero_live_replace_me
 Try the CLI:
 
 ```bash
-VERO_API_TOKEN=vero_live_replace_me npx vero-api net-worth
-VERO_API_TOKEN=vero_live_replace_me npx vero-api financial-data 100 0
-VERO_API_TOKEN=vero_live_replace_me npx vero-api ask "Where did I overspend this month?"
+VERO_API_TOKEN=vero_live_replace_me node dist/cli.js net-worth
+VERO_API_TOKEN=vero_live_replace_me node dist/cli.js financial-data 100 0
+VERO_API_TOKEN=vero_live_replace_me node dist/cli.js ask "Where did I overspend this month?"
 ```
 
-## Claude Desktop MCP config
+## Claude Desktop MCP setup
 
 Build the server first:
 
@@ -80,21 +91,58 @@ Then add this to your Claude Desktop MCP config:
 }
 ```
 
+Restart Claude Desktop after saving the config.
+
+## Hermes Agent or OpenClaw setup
+
+Use the MCP server as a local tool process:
+
+```bash
+npm install
+npm run build
+VERO_API_TOKEN=vero_live_replace_me node dist/mcp-server.js
+```
+
+Set these environment variables in your agent runtime:
+
+```bash
+VERO_API_TOKEN=vero_live_replace_me
+VERO_API_BASE_URL=https://api.askvero.app/functions/v1/vero-api/v1
+```
+
+`VERO_API_BASE_URL` is optional unless you are developing against a non-production Vero host.
+
 ## MCP tools
 
-The MCP server exposes these tools:
+The MCP server exposes:
 
-- `vero_financial_snapshot`
-- `vero_accounts`
-- `vero_transactions`
-- `vero_budgets`
-- `vero_net_worth`
-- `vero_ask`
-- `vero_create_budget`
-- `vero_update_budget`
-- `vero_delete_budget`
-- `vero_create_transaction`
-- `vero_update_transaction`
+| Tool | Purpose |
+| --- | --- |
+| `vero_financial_snapshot` | Full financial snapshot with accounts, budgets, transactions, snapshots, and categories. |
+| `vero_accounts` | Connected account list. |
+| `vero_transactions` | Paginated transaction list. |
+| `vero_budgets` | Budget list. |
+| `vero_net_worth` | Current net worth. |
+| `vero_ask` | Natural-language Vero finance question. |
+| `vero_create_budget` | Create a budget. |
+| `vero_update_budget` | Update a budget. |
+| `vero_delete_budget` | Delete a budget. |
+| `vero_create_transaction` | Create a manual transaction. |
+| `vero_update_transaction` | Update a manual transaction. |
+
+## TypeScript client
+
+```ts
+import { VeroClient } from "@askvero/agent-connect";
+
+const vero = new VeroClient({
+  token: process.env.VERO_API_TOKEN
+});
+
+const netWorth = await vero.netWorth();
+const transactions = await vero.transactions({ limit: 25, offset: 0 });
+const answer = await vero.ask("What changed in my spending this week?");
+```
 
 ## API base URL
 
@@ -104,14 +152,60 @@ The default production API is:
 https://api.askvero.app/functions/v1/vero-api/v1
 ```
 
-You can override it with:
+Override it only for development:
 
 ```bash
-VERO_API_BASE_URL=https://your-api.example.com/v1
+VERO_API_BASE_URL=https://your-api.example.com/functions/v1/vero-api/v1
 ```
 
-## Security notes
+## OpenAPI
 
-Treat a Vero Agent Access token like a password. Store it in your agent's environment or secret store. Do not paste it into prompts, commit it, or share it in screenshots.
+The API surface is described in [`openapi.json`](./openapi.json). Use it for:
 
-This connector never asks for Plaid credentials, bank credentials, Supabase keys, or Vero internal service keys.
+- Generating typed clients.
+- Creating custom GPT Actions.
+- Building hosted tools for agents that do not speak MCP.
+- Giving LLMs a structured view of the API.
+
+## LLM-readable docs
+
+This repo includes [`llms.txt`](./llms.txt), a compact map for LLMs and coding agents. If you are connecting another agent to Vero, start there.
+
+## Security model
+
+Vero Agent Access tokens are user-scoped. Treat them like passwords.
+
+- Store tokens in environment variables or a secret manager.
+- Never paste tokens into prompts.
+- Never commit tokens.
+- Never expose tokens in frontend code.
+- Revoke tokens from Vero Settings if a device, repo, prompt, or agent session may have leaked one.
+
+This connector never asks for bank credentials, Plaid credentials, Supabase keys, Apple keys, Google OAuth secrets, or Vero service-role keys.
+
+## Development
+
+```bash
+npm install
+npm run build
+npm run dev:cli -- net-worth
+npm run dev:mcp
+```
+
+The source is intentionally small:
+
+```text
+src/client.ts       TypeScript API client
+src/cli.ts          CLI wrapper
+src/mcp-server.ts   MCP JSON-RPC server
+openapi.json        OpenAPI description
+examples/           Copy-paste integration examples
+```
+
+## Status
+
+This connector is early and intentionally conservative. The API may expand, but breaking changes should be avoided where practical.
+
+## License
+
+MIT

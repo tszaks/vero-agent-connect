@@ -1,0 +1,58 @@
+# Vero Agent Connect
+
+Repository: https://github.com/tszaks/vero-agent-connect
+Purpose: Public connector for AI agents to access a Vero user's financial data through user-created Vero Agent Access tokens.
+
+Primary files:
+
+- README.md: human setup guide.
+- openapi.json: OpenAPI 3.1 API description.
+- src/client.ts: TypeScript API client.
+- src/mcp-server.ts: local MCP server.
+- src/cli.ts: command-line helper.
+- examples/claude-desktop.json: Claude Desktop MCP example.
+- examples/curl.sh: curl example.
+
+Production API base URL:
+
+https://api.askvero.app/functions/v1/vero-api/v1
+
+Required environment:
+
+- VERO_API_TOKEN: user-created token from Vero Settings > Developers > API Keys.
+
+Optional environment:
+
+- VERO_API_BASE_URL: override for development or self-hosted testing.
+
+Security rules:
+
+- Treat VERO_API_TOKEN like a password.
+- Never print, log, commit, or paste real tokens into prompts.
+- Never ask the user for bank credentials.
+- Never ask the user for Plaid credentials.
+- Never ask the user for Supabase service-role keys.
+- Never claim that an agent can move money. The API cannot move money.
+
+Useful MCP tools:
+
+- vero_financial_snapshot: full read snapshot.
+- vero_accounts: connected accounts.
+- vero_transactions: paginated transactions.
+- vero_budgets: budgets.
+- vero_net_worth: net worth.
+- vero_ask: natural-language Vero analysis.
+- vero_create_budget: create a budget if the token allows writes.
+- vero_update_budget: update a budget if the token allows writes.
+- vero_delete_budget: delete a budget if the token allows writes.
+- vero_create_transaction: create a manual transaction if the token allows writes.
+- vero_update_transaction: update a manual transaction if the token allows writes.
+
+Recommended agent behavior:
+
+1. Read README.md for setup.
+2. Use openapi.json for endpoint shape.
+3. Use src/client.ts for exact request behavior.
+4. Ask the user to create a Vero token in the app.
+5. Store the token in the agent runtime environment.
+6. Prefer read-only analysis unless the user explicitly asks to create or modify budgets or manual transactions.

@@ -3,6 +3,22 @@
   "version": "0.1.0",
   "description": "Connect AI agents to a user's Vero financial data through the public Vero Agent Access API.",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "homepage": "https://github.com/tszaks/vero-agent-connect#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tszaks/vero-agent-connect.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tszaks/vero-agent-connect/issues"
+  },
   "bin": {
     "vero-api": "dist/cli.js",
     "vero-mcp": "dist/mcp-server.js"
@@ -10,6 +26,7 @@
   "files": [
     "dist",
     "README.md",
+    "llms.txt",
     "openapi.json",
     "examples"
   ],
@@ -20,10 +37,13 @@
   },
   "keywords": [
     "vero",
+    "askvero",
     "finance",
     "mcp",
+    "model-context-protocol",
     "ai-agent",
-    "personal-finance"
+    "personal-finance",
+    "openapi"
   ],
   "license": "MIT",
   "engines": {

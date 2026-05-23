@@ -2,18 +2,111 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Vero Agent Access API",
-    "version": "0.1.0"
+    "version": "0.1.0",
+    "description": "User-scoped API for connecting AI agents and developer tools to Vero financial data. Tokens are created by the user inside Vero Settings > Developers > API Keys."
   },
   "servers": [
     {
-      "url": "https://api.askvero.app/functions/v1/vero-api/v1"
+      "url": "https://api.askvero.app/functions/v1/vero-api/v1",
+      "description": "Vero production API"
     }
   ],
   "components": {
     "securitySchemes": {
       "VeroToken": {
         "type": "http",
-        "scheme": "bearer"
+        "scheme": "bearer",
+        "bearerFormat": "Vero Agent Access token",
+        "description": "Use a Vero Agent Access token created by the user in the Vero app."
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" },
+          "message": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "AskRequest": {
+        "type": "object",
+        "required": ["question"],
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "Natural-language finance question to ask Vero."
+          }
+        },
+        "additionalProperties": false
+      },
+      "BudgetInput": {
+        "type": "object",
+        "required": ["category", "amount"],
+        "properties": {
+          "category": { "type": "string" },
+          "amount": { "type": "number" },
+          "period": {
+            "type": "string",
+            "enum": ["weekly", "monthly", "yearly"],
+            "default": "monthly"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BudgetPatch": {
+        "type": "object",
+        "properties": {
+          "category": { "type": "string" },
+          "amount": { "type": "number" },
+          "period": {
+            "type": "string",
+            "enum": ["weekly", "monthly", "yearly"]
+          }
+        },
+        "additionalProperties": false
+      },
+      "TransactionInput": {
+        "type": "object",
+        "required": ["account_id", "amount", "merchant_name", "date"],
+        "properties": {
+          "account_id": { "type": "string", "description": "Vero account ID." },
+          "amount": { "type": "number" },
+          "merchant_name": { "type": "string" },
+          "date": { "type": "string", "format": "date" },
+          "category": { "type": "string" },
+          "notes": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "TransactionPatch": {
+        "type": "object",
+        "properties": {
+          "amount": { "type": "number" },
+          "merchant_name": { "type": "string" },
+          "date": { "type": "string", "format": "date" },
+          "category": { "type": "string" },
+          "notes": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Missing, invalid, revoked, or expired Vero Agent Access token.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "The token does not have permission for this action.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
       }
     }
   },
@@ -23,14 +116,224 @@
     }
   ],
   "paths": {
-    "/me": { "get": { "summary": "Get the token owner" } },
-    "/accounts": { "get": { "summary": "List accounts" } },
-    "/transactions": { "get": { "summary": "List transactions" }, "post": { "summary": "Create a manual transaction" } },
-    "/transactions/{id}": { "patch": { "summary": "Update a manual transaction" } },
-    "/budgets": { "get": { "summary": "List budgets" }, "post": { "summary": "Create a budget" } },
-    "/budgets/{id}": { "patch": { "summary": "Update a budget" }, "delete": { "summary": "Delete a budget" } },
-    "/net-worth": { "get": { "summary": "Get net worth" } },
-    "/financial-data": { "get": { "summary": "Get a full financial snapshot" } },
-    "/ask": { "post": { "summary": "Ask Vero a finance question" } }
+    "/me": {
+      "get": {
+        "operationId": "getTokenOwner",
+        "summary": "Get the token owner",
+        "description": "Returns metadata about the Vero user and token currently being used.",
+        "responses": {
+          "200": { "description": "Token owner metadata." },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/accounts": {
+      "get": {
+        "operationId": "listAccounts",
+        "summary": "List accounts",
+        "description": "Returns connected Vero accounts visible to the authenticated token.",
+        "responses": {
+          "200": { "description": "Connected accounts." },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/transactions": {
+      "get": {
+        "operationId": "listTransactions",
+        "summary": "List transactions",
+        "description": "Returns paginated Vero transactions visible to the authenticated token.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 500, "default": 25 }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 0, "default": 0 }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Transaction page." },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "operationId": "createManualTransaction",
+        "summary": "Create a manual transaction",
+        "description": "Creates a manual Vero transaction if the token has write access.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TransactionInput" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Created transaction." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/transactions/{id}": {
+      "patch": {
+        "operationId": "updateManualTransaction",
+        "summary": "Update a manual transaction",
+        "description": "Updates a manual Vero transaction if the token has write access.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TransactionPatch" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated transaction." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/budgets": {
+      "get": {
+        "operationId": "listBudgets",
+        "summary": "List budgets",
+        "description": "Returns Vero budgets visible to the authenticated token.",
+        "responses": {
+          "200": { "description": "Budgets." },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      },
+      "post": {
+        "operationId": "createBudget",
+        "summary": "Create a budget",
+        "description": "Creates a Vero budget if the token has write access.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/BudgetInput" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Created budget." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/budgets/{id}": {
+      "patch": {
+        "operationId": "updateBudget",
+        "summary": "Update a budget",
+        "description": "Updates a Vero budget if the token has write access.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/BudgetPatch" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated budget." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      },
+      "delete": {
+        "operationId": "deleteBudget",
+        "summary": "Delete a budget",
+        "description": "Deletes a Vero budget if the token has write access.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Deleted budget." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/net-worth": {
+      "get": {
+        "operationId": "getNetWorth",
+        "summary": "Get net worth",
+        "description": "Returns current net worth from connected Vero accounts.",
+        "responses": {
+          "200": { "description": "Net worth." },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/financial-data": {
+      "get": {
+        "operationId": "getFinancialData",
+        "summary": "Get a financial snapshot",
+        "description": "Returns accounts, budgets, transactions, snapshots, and categories for agent analysis.",
+        "parameters": [
+          {
+            "name": "transaction_limit",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 500, "default": 100 }
+          },
+          {
+            "name": "transaction_offset",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 0, "default": 0 }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Financial snapshot." },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/ask": {
+      "post": {
+        "operationId": "askVero",
+        "summary": "Ask Vero a finance question",
+        "description": "Asks Vero a natural-language question using the authenticated user's financial context.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AskRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Vero answer." },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    }
   }
 }
