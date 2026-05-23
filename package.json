@@ -1,0 +1,37 @@
+{
+  "name": "@askvero/agent-connect",
+  "version": "0.1.0",
+  "description": "Connect AI agents to a user's Vero financial data through the public Vero Agent Access API.",
+  "type": "module",
+  "bin": {
+    "vero-api": "dist/cli.js",
+    "vero-mcp": "dist/mcp-server.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "openapi.json",
+    "examples"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev:mcp": "tsx src/mcp-server.ts",
+    "dev:cli": "tsx src/cli.ts"
+  },
+  "keywords": [
+    "vero",
+    "finance",
+    "mcp",
+    "ai-agent",
+    "personal-finance"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

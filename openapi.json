@@ -1,0 +1,36 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Vero Agent Access API",
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.askvero.app/functions/v1/vero-api/v1"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "VeroToken": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "security": [
+    {
+      "VeroToken": []
+    }
+  ],
+  "paths": {
+    "/me": { "get": { "summary": "Get the token owner" } },
+    "/accounts": { "get": { "summary": "List accounts" } },
+    "/transactions": { "get": { "summary": "List transactions" }, "post": { "summary": "Create a manual transaction" } },
+    "/transactions/{id}": { "patch": { "summary": "Update a manual transaction" } },
+    "/budgets": { "get": { "summary": "List budgets" }, "post": { "summary": "Create a budget" } },
+    "/budgets/{id}": { "patch": { "summary": "Update a budget" }, "delete": { "summary": "Delete a budget" } },
+    "/net-worth": { "get": { "summary": "Get net worth" } },
+    "/financial-data": { "get": { "summary": "Get a full financial snapshot" } },
+    "/ask": { "post": { "summary": "Ask Vero a finance question" } }
+  }
+}

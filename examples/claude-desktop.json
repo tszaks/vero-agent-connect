@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "vero": {
+      "command": "node",
+      "args": ["/absolute/path/to/vero-agent-connect/dist/mcp-server.js"],
+      "env": {
+        "VERO_API_TOKEN": "vero_live_replace_me"
+      }
+    }
+  }
+}
