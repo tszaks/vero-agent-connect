@@ -15,7 +15,7 @@ Primary files:
 
 Production API base URL:
 
-https://api.askvero.app/functions/v1/vero-api/v1
+https://ehhsyuhnjjnalhlsyskn.supabase.co/functions/v1/vero-api/v1
 
 Required environment:
 
