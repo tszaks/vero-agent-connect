@@ -25,8 +25,11 @@ export type VeroTransactionInput = {
   notes?: string;
 };
 
+// Live Vero backend host. The previous default, api.askvero.app, pointed at a
+// retired server and no longer answers; update this constant (and openapi.json,
+// llms.txt, README.md, .env.example and examples/curl.sh) if the host moves again.
 export const DEFAULT_VERO_API_BASE_URL =
-  "https://api.askvero.app/functions/v1/vero-api/v1";
+  "https://ehhsyuhnjjnalhlsyskn.supabase.co/functions/v1/vero-api/v1";
 
 export class VeroAPIError extends Error {
   readonly status: number;

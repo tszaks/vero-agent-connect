@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://api.askvero.app/functions/v1/vero-api/v1",
+      "url": "https://ehhsyuhnjjnalhlsyskn.supabase.co/functions/v1/vero-api/v1",
       "description": "Vero production API"
     }
   ],

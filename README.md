@@ -107,7 +107,7 @@ Set these environment variables in your agent runtime:
 
 ```bash
 VERO_API_TOKEN=vero_live_replace_me
-VERO_API_BASE_URL=https://api.askvero.app/functions/v1/vero-api/v1
+VERO_API_BASE_URL=https://ehhsyuhnjjnalhlsyskn.supabase.co/functions/v1/vero-api/v1
 ```
 
 `VERO_API_BASE_URL` is optional unless you are developing against a non-production Vero host.
@@ -149,8 +149,12 @@ const answer = await vero.ask("What changed in my spending this week?");
 The default production API is:
 
 ```text
-https://api.askvero.app/functions/v1/vero-api/v1
+https://ehhsyuhnjjnalhlsyskn.supabase.co/functions/v1/vero-api/v1
 ```
+
+This is the live Vero backend host. The earlier `api.askvero.app` alias is
+retired and no longer resolves to a running server, so any agent config still
+pointing at it must be updated to the URL above.
 
 Override it only for development:
 
