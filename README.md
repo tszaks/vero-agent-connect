@@ -1,49 +1,36 @@
-# Vero Agent Connect
+<h1 align="center">Vero Agent Connect</h1>
 
-Public connector for giving AI agents controlled access to a user's Vero financial data.
+<p align="center">
+  The public connector that lets AI agents read, and optionally edit, a user's Vero financial data with a token the user creates.
+</p>
 
-Vero Agent Connect includes:
+<p align="center">
+  <a href="https://github.com/tszaks/vero-agent-connect/actions/workflows/ci.yml"><img src="https://github.com/tszaks/vero-agent-connect/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/tszaks/vero-agent-connect" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/Node-20%2B-339933" alt="Node 20 or later">
+</p>
 
-- A TypeScript client for the Vero Agent Access API.
-- A local MCP server for Claude Desktop, Cursor, OpenClaw, Hermes Agents, and other MCP-compatible tools.
-- A small CLI for quick checks and automation scripts.
-- An OpenAPI spec for code generation and LLM tool use.
+```text
+$ VERO_API_TOKEN=vero_live_replace_me node dist/cli.js ask "Where did I overspend this month?"
+```
 
-This repository is intentionally separate from Vero's private app and backend code. It contains public client code, examples, and documentation only.
+Vero Agent Connect is a TypeScript client, a local MCP server and a small command line tool for the Vero Agent Access API. It is for developers who want Claude Desktop, Cursor, OpenClaw, Hermes Agent or any other MCP-compatible tool to answer questions about a Vero user's accounts, budgets and transactions.
 
-## What agents can do
+The user stays in control. Access works only through a token the user creates in the Vero app and can revoke at any time. This repository is separate from Vero's private app and backend. It holds public client code, an OpenAPI spec, examples and docs only.
 
-With a Vero Agent Access token, an agent can:
+## Features
 
-- Read connected accounts, balances, budgets, transactions, and net worth.
-- Ask Vero natural-language questions about the user's finances.
-- Create, update, and delete Vero budgets when the token has write access.
-- Create and update manual Vero transactions when the token has write access.
+- **TypeScript client.** `VeroClient` wraps every endpoint in the API, with typed inputs and a `VeroAPIError` that carries the HTTP status.
+- **Local MCP server.** Eleven tools over stdio JSON-RPC, started with `node dist/mcp-server.js`.
+- **Command line tool.** `vero-api` for quick checks and scripts.
+- **OpenAPI 3.1 spec.** [`openapi.json`](openapi.json) for generated clients, custom GPT Actions and hosted tools.
+- **Read first, write only with permission.** Budgets and manual transactions can be changed only when the token has write access.
+- **No money movement.** The API cannot move money, make payments or open or close bank accounts.
+- **Small and dependency free.** Nothing at runtime beyond Node 20+. The build needs TypeScript.
 
-Agents cannot:
+## Install
 
-- Move money.
-- Make payments.
-- Open or close bank accounts.
-- Access bank credentials.
-- See Plaid credentials.
-- See Vero internal service-role keys.
-- Recover a token after the user leaves the token creation screen.
-
-## Create a token
-
-In the Vero iOS app:
-
-1. Open `Settings`.
-2. Open `Developers`.
-3. Open `API Keys`.
-4. Tap `Create Agent Token`.
-5. Name the token, for example `Claude Desktop`, `OpenClaw`, or `Hermes`.
-6. Copy the token once and store it in the agent's environment.
-
-You can revoke a token from the same screen at any time.
-
-## Quick start
+This package is not published to npm yet. Build it from source. You need Node 20 or later.
 
 ```bash
 git clone https://github.com/tszaks/vero-agent-connect.git
@@ -53,29 +40,69 @@ cp .env.example .env
 npm run build
 ```
 
-Add your token to `.env`:
+### Create a token
+
+In the Vero iOS app:
+
+1. Open `Settings`.
+2. Open `Developers`.
+3. Open `API Keys`.
+4. Tap `Create Agent Token`.
+5. Name the token, for example `Claude Desktop`, `OpenClaw` or `Hermes`.
+6. Copy the token once and store it in the agent's environment. Vero cannot show it again.
+
+You can revoke a token from the same screen at any time.
+
+## Usage
+
+### Command line
+
+The tool reads `VERO_API_TOKEN` from the environment. It does not read `.env` by itself, so export the variable or put it in front of the command.
 
 ```bash
-VERO_API_TOKEN=vero_live_replace_me
+export VERO_API_TOKEN=vero_live_replace_me
+node dist/cli.js net-worth
+node dist/cli.js financial-data 100 0
+node dist/cli.js ask "Where did I overspend this month?"
 ```
 
-Try the CLI:
+| Command | What it does |
+| --- | --- |
+| `me` | Show metadata about the user and token in use. |
+| `accounts` | List connected accounts. |
+| `transactions [limit] [offset]` | List transactions (defaults: 25 and 0). |
+| `budgets` | List budgets. |
+| `net-worth` | Show current net worth. |
+| `financial-data [transactionLimit] [transactionOffset]` | Full snapshot (defaults: 100 and 0). |
+| `ask <question>` | Ask Vero a natural-language question. |
+
+The command line tool is read-only. Creating and changing budgets and transactions is available through the client and the MCP server.
+
+### TypeScript client
+
+```ts
+import { VeroClient } from "./dist/index.js";
+
+const vero = new VeroClient({ token: process.env.VERO_API_TOKEN });
+
+const netWorth = await vero.netWorth();
+const transactions = await vero.transactions({ limit: 25, offset: 0 });
+const answer = await vero.ask("What changed in my spending this week?");
+```
+
+The package name in `package.json` is `@askvero/agent-connect`. Once it is published, you can import from that name instead.
+
+### MCP server
+
+Build first with `npm run build`. Then run the server directly:
 
 ```bash
-VERO_API_TOKEN=vero_live_replace_me node dist/cli.js net-worth
-VERO_API_TOKEN=vero_live_replace_me node dist/cli.js financial-data 100 0
-VERO_API_TOKEN=vero_live_replace_me node dist/cli.js ask "Where did I overspend this month?"
+VERO_API_TOKEN=vero_live_replace_me node dist/mcp-server.js
 ```
 
-## Claude Desktop MCP setup
+Most agents start it for you from a config file.
 
-Build the server first:
-
-```bash
-npm run build
-```
-
-Then add this to your Claude Desktop MCP config:
+**Claude Desktop.** Add this to your Claude Desktop MCP config, then restart the app. Use the real absolute path to your checkout. The same file is in [`examples/claude-desktop.json`](examples/claude-desktop.json).
 
 ```json
 {
@@ -91,85 +118,61 @@ Then add this to your Claude Desktop MCP config:
 }
 ```
 
-Restart Claude Desktop after saving the config.
+**Other MCP clients (Cursor, OpenClaw, Hermes Agent).** Run `node dist/mcp-server.js` as a local stdio tool process and set `VERO_API_TOKEN` in the agent's environment. Each client has its own config format. The command and environment are the same as above.
 
-## Hermes Agent or OpenClaw setup
-
-Use the MCP server as a local tool process:
-
-```bash
-npm install
-npm run build
-VERO_API_TOKEN=vero_live_replace_me node dist/mcp-server.js
-```
-
-Set these environment variables in your agent runtime:
-
-```bash
-VERO_API_TOKEN=vero_live_replace_me
-VERO_API_BASE_URL=https://api.askvero.app/functions/v1/vero-api/v1
-```
-
-`VERO_API_BASE_URL` is optional unless you are developing against a non-production Vero host.
-
-## MCP tools
-
-The MCP server exposes:
-
-| Tool | Purpose |
+| Tool | What it does |
 | --- | --- |
-| `vero_financial_snapshot` | Full financial snapshot with accounts, budgets, transactions, snapshots, and categories. |
-| `vero_accounts` | Connected account list. |
+| `vero_financial_snapshot` | Full financial snapshot with accounts, budgets, transactions, snapshots and categories. |
+| `vero_accounts` | List connected accounts. |
 | `vero_transactions` | Paginated transaction list. |
-| `vero_budgets` | Budget list. |
+| `vero_budgets` | List budgets. |
 | `vero_net_worth` | Current net worth. |
-| `vero_ask` | Natural-language Vero finance question. |
-| `vero_create_budget` | Create a budget. |
-| `vero_update_budget` | Update a budget. |
-| `vero_delete_budget` | Delete a budget. |
-| `vero_create_transaction` | Create a manual transaction. |
-| `vero_update_transaction` | Update a manual transaction. |
+| `vero_ask` | Ask a natural-language question about the user's finances. |
+| `vero_create_budget` | Create a budget. Needs write access. |
+| `vero_update_budget` | Update a budget. Needs write access. |
+| `vero_delete_budget` | Delete a budget. Needs write access. |
+| `vero_create_transaction` | Create a manual transaction. Needs write access. |
+| `vero_update_transaction` | Update a manual transaction. Needs write access. |
 
-## TypeScript client
+### Raw HTTP
 
-```ts
-import { VeroClient } from "@askvero/agent-connect";
+[`examples/curl.sh`](examples/curl.sh) shows a plain `curl` call with the bearer token.
 
-const vero = new VeroClient({
-  token: process.env.VERO_API_TOKEN
-});
+## Configuration
 
-const netWorth = await vero.netWorth();
-const transactions = await vero.transactions({ limit: 25, offset: 0 });
-const answer = await vero.ask("What changed in my spending this week?");
-```
+| Variable | Required | Default | Purpose |
+| --- | --- | --- | --- |
+| `VERO_API_TOKEN` | Yes | none | The user's Vero Agent Access token. Sent as `Authorization: Bearer`. |
+| `VERO_API_BASE_URL` | No | `https://api.askvero.app/functions/v1/vero-api/v1` | Override only when developing against a non-production Vero host. |
 
-## API base URL
+`new VeroClient({ token, baseUrl })` accepts the same two values and takes priority over the environment. The client throws at construction if no token is set.
 
-The default production API is:
+## Made for AI agents
 
-```text
-https://api.askvero.app/functions/v1/vero-api/v1
-```
+If you are an agent connecting to Vero, start with [`llms.txt`](llms.txt). It is a compact map of this repository, the safety rules and the recommended behavior. [`openapi.json`](openapi.json) has the exact request shapes, and [`src/client.ts`](src/client.ts) has the exact request behavior. If you are an agent working on this repository's code, read [AGENTS.md](AGENTS.md).
 
-Override it only for development:
+Good agent behavior with this connector:
 
-```bash
-VERO_API_BASE_URL=https://your-api.example.com/functions/v1/vero-api/v1
-```
+- Prefer read-only analysis. Change a budget or transaction only when the user clearly asks.
+- Never print, log or paste the token into a prompt.
+- Never ask the user for bank credentials, Plaid credentials or Vero service keys. This connector needs none of them.
 
-## OpenAPI
+## FAQ
 
-The API surface is described in [`openapi.json`](./openapi.json). Use it for:
+**Can an agent move my money?**
+No. The API cannot move money, make payments, open or close bank accounts, or reach bank credentials.
 
-- Generating typed clients.
-- Creating custom GPT Actions.
-- Building hosted tools for agents that do not speak MCP.
-- Giving LLMs a structured view of the API.
+**What can a token see?**
+Only the data of the user who created it: accounts, balances, budgets, transactions and net worth. Writes need a token with write access.
 
-## LLM-readable docs
+**What if a token leaks?**
+Revoke it in the Vero app (Settings > Developers > API Keys). Create a new one.
 
-This repo includes [`llms.txt`](./llms.txt), a compact map for LLMs and coding agents. If you are connecting another agent to Vero, start there.
+**Does this connector send data anywhere else?**
+It makes requests only to the Vero API at the base URL above. It has no analytics and no other network calls. Whatever an agent does with the data it receives depends on that agent.
+
+**Can I get the token again?**
+No. Vero shows it once, when you create it. Make a new token if you lose it.
 
 ## Security model
 
@@ -179,9 +182,9 @@ Vero Agent Access tokens are user-scoped. Treat them like passwords.
 - Never paste tokens into prompts.
 - Never commit tokens.
 - Never expose tokens in frontend code.
-- Revoke tokens from Vero Settings if a device, repo, prompt, or agent session may have leaked one.
+- Revoke tokens from the Vero app if a device, repo, prompt or agent session may have leaked one.
 
-This connector never asks for bank credentials, Plaid credentials, Supabase keys, Apple keys, Google OAuth secrets, or Vero service-role keys.
+See [SECURITY.md](SECURITY.md) to report a vulnerability.
 
 ## Development
 
@@ -192,20 +195,25 @@ npm run dev:cli -- net-worth
 npm run dev:mcp
 ```
 
-The source is intentionally small:
-
 ```text
 src/client.ts       TypeScript API client
 src/cli.ts          CLI wrapper
 src/mcp-server.ts   MCP JSON-RPC server
+src/index.ts        Package exports
 openapi.json        OpenAPI description
 examples/           Copy-paste integration examples
 ```
 
 ## Status
 
-This connector is early and intentionally conservative. The API may expand, but breaking changes should be avoided where practical.
+Early and intentionally conservative. The API may grow, and breaking changes are avoided where practical. There are no automated tests yet. CI builds the TypeScript.
+
+## Contributing
+
+Bug reports and pull requests are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first. Security problems go through [SECURITY.md](SECURITY.md). Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+Docs: [llms.txt](llms.txt) · [OpenAPI](openapi.json) · [agent guide](AGENTS.md) · [changelog](CHANGELOG.md)
 
 ## License
 
-MIT
+[MIT](LICENSE)
