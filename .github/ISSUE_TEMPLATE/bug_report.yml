@@ -1,0 +1,53 @@
+name: Bug report
+description: Something in Vero Agent Connect does not work as it should
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Never paste a real Vero token or real financial data into an issue. Use placeholders.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps are best. Include the exact command or tool call, with the token removed.
+      placeholder: |
+        1. Run `node dist/cli.js ...`
+        2. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: entry
+    attributes:
+      label: How are you using the connector?
+      options:
+        - "MCP server"
+        - "Command line tool"
+        - "TypeScript client"
+        - "Raw HTTP or OpenAPI"
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node version
+      placeholder: "20.11.0"
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: Agent or MCP client, if any
+      placeholder: "Claude Desktop"
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Error messages (with tokens removed) or notes.
